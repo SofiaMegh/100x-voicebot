@@ -49,8 +49,11 @@ Superpower: ${persona.superpower}
 Misconception: ${persona.misconception}
 Boundaries: ${persona.boundaries}`;
 
+    // ⬇️ Read the model from env; default to gpt-5-mini
+    const model = process.env.MODEL || 'gpt-5-mini';
+
     const resp = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model,
       messages: [
         { role: 'system', content: system },
         { role: 'user', content: message }
