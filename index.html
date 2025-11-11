@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Megh – Voice Bot</title>
+  <link rel="stylesheet" href="/public/style.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>Megh – Voice Bot</h1>
+    <p class="hint">Tap the mic, ask your question, and hear the answer. No setup needed.</p>
+
+    <div class="controls">
+      <button id="micBtn">🎙️ Start</button>
+      <button id="stopBtn" disabled>⏹️ Stop</button>
+    </div>
+
+    <div class="io">
+      <div class="panel">
+        <h3>You said</h3>
+        <div id="userText" class="bubble"></div>
+      </div>
+      <div class="panel">
+        <h3>Bot</h3>
+        <div id="botText" class="bubble"></div>
+      </div>
+    </div>
+
+    <form id="fallbackForm" class="fallback">
+      <input id="textInput" placeholder="Or type your question…" />
+      <button type="submit">Send</button>
+    </form>
+
+    <footer>Built for 100x • Voice in browser • Answers powered by a private serverless API</footer>
+  </main>
+
+  <script>
+    const userText = document.getElementById('userText');
+    const botText = document.getElementById('botText');
+    const micBtn = document.getElementById('micBtn');
+    const stopBtn = document.getElementById('stopBtn');
+
+    let recognition;
+    let listening = false;
+
+    function speak(text) {
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.rate = 1.0;
+      utter.pitch = 1.0;
+      speechSynthesis.cancel();
+      speechSynthesis.speak(utter);
+    }
+
+    async function askLLM(message) {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message })
+      });
+      const data = await res.json();
+      return data.reply;
+    }
+
+    function startListening() {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) {
+        alert('SpeechRecognition not supported in this browser. Use the text box below.');
+        return;
+      }
+      recognition = new SR();
+      recognition.lang = 'en-US';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.onstart = () => { listening = true; micBtn.disabled = true; stopBtn.disabled = false; };
+      recognition.onerror = (e) => { console.error(e); };
+      recognition.onend = () => { listening = false; micBtn.disabled = false; stopBtn.disabled = true; };
+      recognition.onresult = async (event) => {
+        const transcript = event.results[0][0].transcript;
+        userText.textContent = transcript;
+        botText.textContent = '…thinking';
+        const reply = await askLLM(transcript);
+        botText.textContent = reply;
+        speak(reply);
+      };
+      recognition.start();
+    }
+
+    micBtn.addEventListener('click', startListening);
+    stopBtn.addEventListener('click', () => { if (recognition && listening) recognition.stop(); });
+
+    // Fallback text input
+    const form = document.getElementById('fallbackForm');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const input = document.getElementById('textInput');
+      const msg = input.value.trim();
+      if (!msg) return;
+      userText.textContent = msg;
+      botText.textContent = '…thinking';
+      const reply = await askLLM(msg);
+      botText.textContent = reply;
+      speak(reply);
+      input.value = '';
+    });
+  </script>
+</body>
+</html>
