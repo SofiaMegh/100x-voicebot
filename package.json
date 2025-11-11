@@ -1,0 +1,10 @@
+{
+  "name": "100x-voicebot",
+  "private": true,
+  "version": "1.0.0",
+  "type": "commonjs",
+  "license": "MIT",
+  "dependencies": {
+    "openai": "^4.56.0"
+  }
+}
