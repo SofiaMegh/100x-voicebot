@@ -5,6 +5,6 @@
   "type": "commonjs",
   "license": "MIT",
   "dependencies": {
-    "openai": "^4.56.0"
+    "@google/generative-ai": "^0.24.1"
   }
 }
